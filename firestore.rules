@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can read/write their own cart items
+      match /cart/{cartItemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Users can read/write their own wishlist items
+      match /wishlist/{wishlistItemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Wishlist collection (alternative structure)
+    match /wishlist/{userId}/items/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Products can be read by authenticated users
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only admin should write products
+    }
+    
+    // Orders can be read/written by the user who created them
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+    
+    // Carts collection
+    match /carts/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow users to read and write to the 'items' subcollection within their cart
+      match /items/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
